@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>simularr audio browser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #f8f8f8;
+            padding: 10px 20px;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        #audio-select {
+            margin-top: 10px;
+            padding: 5px;
+            font-size: 16px;
+        }
+
+        /* main content below hheader */
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            margin-top: 80px;
+            /* Space for header */
+            padding: 20px;
+            overflow: auto;
+        }
+
+        #audio-player {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        #audio-player audio {
+            width: 100%;
+            height: auto;
+        }
+
+        #transcription {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            max-height: calc(100vh - 120px);
+            /* Full height minus the header and audio player */
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        /* transcription segment container */
+        .transcription-segment {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        .transcription-text {
+            flex-grow: 1;
+        }
+
+        .highlight {
+            background-color: yellow;
+        }
+
+        /* user clicks on transcription */
+        #audio-select,
+        #audio-player {
+            width: 100%;
+        }
+
+        /* content in view and scrolls */
+        .scrollable {
+            overflow-y: auto;
+        }
+
+        textarea.editable {
+            width: 100%;
+            height: 50px;
+            padding: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .edit-button,
+        .note-button {
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        /* buttons to the right */
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>simularr audio browser</h1>
+        <select id="audio-select">
+            <!-- Audio files -->
+        </select>
+    </header>
+
+    <div id="main-content">
+        <div id="audio-player"></div>
+        <div id="transcription" class="scrollable"></div>
+    </div>
+
+    <script>
+        let transcriptionData = [];
+
+        // fetch list of audio files from flask server
+        fetch('/list_audio_files')
+            .then(response => response.json())
+            .then(data => {
+                const audioSelect = document.getElementById('audio-select');
+
+                // populate the dropdown with audio files
+                data.audio_files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    audioSelect.appendChild(option);
+                });
+
+                // add event listener for selection change
+                audioSelect.addEventListener('change', function () {
+                    const selectedFile = audioSelect.value;
+                    loadAudio(selectedFile);
+                    loadTranscription(selectedFile);
+                });
+
+                // trigger the initial load for the first audio file
+                if (audioSelect.options.length > 0) {
+                    audioSelect.value = audioSelect.options[0].value;
+                    loadAudio(audioSelect.value);
+                    loadTranscription(audioSelect.value);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching audio files:', error);
+            });
+
+        // load and play the audio
+        function loadAudio(file) {
+            const audioPlayer = document.getElementById('audio-player');
+            audioPlayer.innerHTML = '';  // Cclear any existing audio player
+            const audioElement = document.createElement('audio');
+            audioElement.src = '/audio/' + file;
+            audioElement.controls = true;
+            audioPlayer.appendChild(audioElement);
+
+            // listen to the timeupdate event to update transcription highlighting
+            audioElement.addEventListener('timeupdate', function () {
+                highlightTranscription(audioElement.currentTime);
+            });
+
+            audioElement.play();
+        }
+
+        // load the transcription
+        function loadTranscription(file) {
+            const transcriptionDiv = document.getElementById('transcription');
+            transcriptionDiv.innerHTML = '';  // Clear previous transcription
+
+            const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+
+            fetch('/transcription/' + transcriptionFile)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.transcript) {
+                        transcriptionData = data.transcript;
+                        // Display the transcription text
+                        transcriptionData.forEach((segment, index) => {
+                            const segmentDiv = document.createElement('div');
+                            segmentDiv.classList.add('transcription-segment');
+                            segmentDiv.id = `segment-${index}`; // Add unique ID to each segment
+
+                            const textDiv = document.createElement('div');
+                            textDiv.classList.add('transcription-text');
+                            textDiv.textContent = `[${segment.start} - ${segment.end}] ${segment.text}`;
+                            segmentDiv.appendChild(textDiv);
+
+                            // Add event listener to jump to that segment when clicked
+                            segmentDiv.addEventListener('click', function () {
+                                jumpToSegment(segment.start);
+                            });
+
+                            // button container for Edit and Note buttons
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.classList.add('button-container');
+
+                            const editButton = document.createElement('button');
+                            editButton.textContent = 'Edit';
+                            editButton.classList.add('edit-button');
+                            buttonContainer.appendChild(editButton);
+
+                            editButton.addEventListener('click', function () {
+                                makeEditable(segmentDiv, index);
+                            });
+
+                            const noteButton = document.createElement('button');
+                            noteButton.textContent = 'Note';
+                            noteButton.classList.add('note-button');
+                            buttonContainer.appendChild(noteButton);
+
+                            noteButton.addEventListener('click', function () {
+                                createNote(segment.start, segment.end);
+                            });
+
+                            segmentDiv.appendChild(buttonContainer);
+                            transcriptionDiv.appendChild(segmentDiv);
+                        });
+                    } else {
+                        transcriptionDiv.textContent = 'No transcription available.';
+                    }
+                })
+                .catch(error => {
+                    transcriptionDiv.textContent = 'Error loading transcription.';
+                    console.error('Error fetching transcription:', error);
+                });
+        }
+
+        // highlight the transcription text 
+        function highlightTranscription(currentTime) {
+            transcriptionData.forEach((segment, index) => {
+                const segmentDiv = document.getElementById(`segment-${index}`);
+
+                // remove previous highlights
+                segmentDiv.classList.remove('highlight');
+
+                // highlight the segment that is currently playing
+                if (currentTime >= segment.start && currentTime <= segment.end) {
+                    segmentDiv.classList.add('highlight');
+                }
+            });
+        }
+
+        // jump to a specific time when a transcription segment is clicked
+        function jumpToSegment(startTime) {
+            const audioElement = document.querySelector('audio');
+            audioElement.currentTime = startTime; // audio time to the start of the clicked segment
+            audioElement.play();
+        }
+
+        // make transcription editable
+        function makeEditable(segmentDiv, index) {
+            const originalText = transcriptionData[index].text;
+            segmentDiv.innerHTML = `<textarea class="editable">${originalText}</textarea>`;
+
+            const textarea = segmentDiv.querySelector('textarea');
+            textarea.addEventListener('blur', function () {
+                saveEdits(segmentDiv, index, textarea.value);
+            });
+
+            // enter key saves the edit
+            textarea.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // prevent the default behavior of moving to a new line
+                    saveEdits(segmentDiv, index, textarea.value);
+                }
+            });
+
+            textarea.focus();
+        }
+
+        // save edits made to transcription
+        function saveEdits(segmentDiv, index, newText) {
+            transcriptionData[index].text = newText;
+            segmentDiv.innerHTML = `[${transcriptionData[index].start} - ${transcriptionData[index].end}] ${newText}`;
+
+            // re-add the edit button after saving
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.classList.add('edit-button');
+            segmentDiv.appendChild(editButton);
+
+            editButton.addEventListener('click', function () {
+                makeEditable(segmentDiv, index);
+            });
+
+            // re-add the note button after saving
+            const noteButton = document.createElement('button');
+            noteButton.textContent = 'Note';
+            noteButton.classList.add('note-button');
+            segmentDiv.appendChild(noteButton);
+
+            noteButton.addEventListener('click', function () {
+                createNote(transcriptionData[index].start, transcriptionData[index].end);
+            });
+
+            // send updates to the server
+            const audioFile = document.getElementById('audio-select').value;
+            const transcriptionFile = audioFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+            fetch(`/update_transcription/${transcriptionFile}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ transcription: transcriptionData }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        console.log(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving transcription:', error);
+                });
+        }
+
+        // create a note for the selected segment
+        function createNote(start, end) {
+            const noteText = prompt('Enter note text:');
+            if (noteText !== null) {
+                const annotation = { start, end, text: noteText };
+                const audioFile = document.getElementById('audio-select').value;
+                const transcriptionFile = audioFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                fetch(`/add_annotation/${transcriptionFile}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ annotation })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            console.log(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving annotation:', error);
+                    });
+            }
+        }
+    </script>
+</body>
+
+</html>
