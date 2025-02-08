@@ -7,6 +7,8 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+import argparse
+import sys
 
 def transcribe_audio(audio_path):
     if not os.path.exists(audio_path):
@@ -17,9 +19,21 @@ def transcribe_audio(audio_path):
     start_time = time.time()
 
     filename = os.path.basename(audio_path)
+    filename_without_extension = os.path.splitext(filename)[0]
     date_match = re.match(r"^(\d{6,8})[-_]", filename)
     date = date_match.group(1) if date_match else "unknown"
-    notes = filename.replace(f"{date}-", "").replace("_mixed_stereo.wav", "")
+
+    place_match = filename.split('_')[1]
+    place = place_match if place_match else "unknown"   
+
+    notes = filename.split('_', 2)[-1]
+    notes = notes.replace(".wav", "")
+    notes = re.sub(r'_Ste_\d{3}$', '', notes)  # Remove record infos
+    notes = re.sub(r'_Neue_Aufnahme_\d+$', '', notes)
+    
+    print("Date:", date)
+    print("Place:", place)
+    print("Notes:", notes)
 
     # Get audio duration using ffmpeg
     probe = ffmpeg.probe(audio_path, v='error', select_streams='a', show_entries='stream=duration')
@@ -61,6 +75,7 @@ def transcribe_audio(audio_path):
         "path": audio_path,
         "duration": audio_duration_minutes,
         "date": date,
+        "place": place,
         "notes": notes,
         "transcript": []
     }
@@ -85,7 +100,7 @@ def transcribe_audio(audio_path):
                 "text": text
             })
 
-    json_file_path = parent_dir + f"/{filename}.json"
+    json_file_path = parent_dir + f"/{filename_without_extension}.json"
     with open(json_file_path, "w", encoding="utf-8") as json_file:
         json.dump(json_data, json_file, indent=4)
 
@@ -93,6 +108,31 @@ def transcribe_audio(audio_path):
     print(f"Transcription text saved to 'transcription.txt'")
     print(f"Transcription JSON saved to 'transcription.json'")
 
+def check_audio_path(audio_path):
+    if not os.path.exists(audio_path):
+        print(f"Error: The file '{audio_path}' does not exist.")
+        return False
+
+    if not audio_path.endswith(".wav"):
+        print("Error: The file must have a '.wav' extension.")
+        return False
+
+    return True
+
 if __name__ == "__main__":
-    audio_path = "/path/to/your/audio/file.wav"  # Only needed if running the script directly
-    transcribe_audio(audio_path)
+    parser = argparse.ArgumentParser(
+        description="Transcribe audio file and extract metadata from the filename.",
+        usage="%(prog)s [audio_path]",
+    )
+    parser.add_argument(
+        'audio_path', type=str, nargs='?', help="Path to the audio file. Example: '/path/to/file.wav'"
+    )
+
+    args = parser.parse_args()
+
+    if not args.audio_path:
+        print("Warning: No audio path provided. Please provide the path to a .wav file.")
+        sys.exit(1)
+    
+    if check_audio_path(args.audio_path):
+        transcribe_audio(args.audio_path)
