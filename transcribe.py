@@ -82,7 +82,7 @@ def transcribe_audio(audio_path):
     parent_dir = str(Path(audio_path).parent)
 
     # Write the cleaned transcription to a text file and add it to the JSON data
-    with open(parent_dir + "/transcription.txt", "w", encoding="utf-8") as txt_file:
+    with open(parent_dir + f"/{filename_without_extension}.txt", "w", encoding="utf-8") as txt_file:
         for segment in cleaned_transcription:
             start_time = segment["start"]
             end_time = segment["end"]
@@ -105,8 +105,8 @@ def transcribe_audio(audio_path):
         json.dump(json_data, json_file, indent=4)
 
     print(f"Transcription completed in {elapsed_time:.2f} seconds (~{elapsed_time/60:.2f} minutes).")
-    print(f"Transcription text saved to 'transcription.txt'")
-    print(f"Transcription JSON saved to 'transcription.json'")
+    print(f"Transcription text saved to {filename_without_extension}.txt")
+    print(f"Transcription JSON saved to {filename_without_extension}.json'")
 
 def check_audio_path(audio_path):
     if not os.path.exists(audio_path):
