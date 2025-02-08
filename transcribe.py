@@ -29,7 +29,9 @@ def transcribe_audio(audio_path):
     notes = filename.split('_', 2)[-1]
     notes = notes.replace(".wav", "")
     notes = re.sub(r'_Ste_\d{3}$', '', notes)  # Remove record infos
+    notes = re.sub(r'Ste_\d{3}$', '', notes)
     notes = re.sub(r'_Neue_Aufnahme_\d+$', '', notes)
+    notes = notes if notes else None  
     
     print("Date:", date)
     print("Place:", place)
