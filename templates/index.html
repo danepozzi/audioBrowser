@@ -307,17 +307,27 @@
         }
 
         // Format date 
+        // Format date to human-readable format
         function formatDate(dateStr) {
+            if (!dateStr) {
+                return 'N/A';  // If dateStr is undefined or empty, return 'N/A'
+            }
+
             const year = `20${dateStr.slice(0, 2)}`;
             const month = parseInt(dateStr.slice(2, 4)) - 1;  // Months are 0-indexed
             const day = parseInt(dateStr.slice(4, 6));
 
             const date = new Date(year, month, day);
 
+            // Check if the date is valid
+            if (isNaN(date.getTime())) {
+                return 'Invalid Date';  // If the date is invalid, return a placeholder text
+            }
+
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             const formattedDate = date.toLocaleDateString('en-GB', options);
 
-            // Add the suffix to the day
+            // Add the suffix to the day (1st, 2nd, 3rd, etc.)
             const daySuffix = ['st', 'nd', 'rd', 'th'];
             const dayOfMonth = day;
             const suffix = daySuffix[(dayOfMonth % 10) - 1] || daySuffix[3];
