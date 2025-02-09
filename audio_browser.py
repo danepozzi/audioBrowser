@@ -117,6 +117,29 @@ def add_annotation(audio_filename):
             return jsonify({"error": f"Error saving annotation: {str(e)}"}), 500
     else:
         return jsonify({"error": "Transcription file not found"}), 404
+    
+@app.route('/update_notes/<path:audio_filename>', methods=['POST'])
+def update_notes(audio_filename):
+    transcription_filename = audio_filename.replace(".wav", ".json")
+    transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
+
+    if os.path.exists(transcription_path):
+        new_notes = request.json.get('notes')
+
+        try:
+            with open(transcription_path, 'r') as file:
+                existing_data = json.load(file)
+            
+            existing_data['notes'] = new_notes  # Update the notes field
+
+            with open(transcription_path, 'w') as file:
+                json.dump(existing_data, file, indent=4)
+            
+            return jsonify({"message": "Notes updated successfully"}), 200
+        except Exception as e:
+            return jsonify({"error": f"Error saving notes: {str(e)}"}), 500
+    else:
+        return jsonify({"error": "Transcription file not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

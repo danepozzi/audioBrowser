@@ -141,6 +141,7 @@
         <select id="audio-select">
             <!-- Audio files -->
         </select>
+        <button id="open-json-button">Open JSON</button>
     </header>
 
     <div id="main-content">
@@ -253,9 +254,15 @@
                             <td>${formatDuration(data.duration)}</td>
                             <td>${formatDate(data.date)}</td>
                             <td>${data.place || 'N/A'}</td>
-                            <td>${data.notes || 'N/A'}</td>
+                            <td contenteditable="true" id="notes-field">${data.notes || 'Click to add notes'}</td>
                         `;
                         table.appendChild(row);
+
+                        // Add event listener to save notes on blur (when user clicks away)
+                        const notesField = row.querySelector('#notes-field');
+                        notesField.addEventListener('blur', function () {
+                            saveNotes(file, notesField.textContent);
+                        });
 
                         fileInfoDiv.appendChild(table);
 
@@ -473,6 +480,41 @@
                     });
             }
         }
+
+        // Function to open the corresponding JSON file
+        function openJsonFile() {
+            const selectedFile = document.getElementById('audio-select').value;
+            if (selectedFile) {
+                const transcriptionFile = selectedFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                window.open('/transcription/' + transcriptionFile, '_blank');
+            } else {
+                alert('Please select an audio file first.');
+            }
+        }
+
+        function saveNotes(file, newNotes) {
+            const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+
+            fetch(`/update_notes/${transcriptionFile}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ notes: newNotes }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        console.log('Notes updated successfully:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving notes:', error);
+                });
+        }
+
+        // Add event listener to the button
+        document.getElementById('open-json-button').addEventListener('click', openJsonFile);
     </script>
 </body>
 
