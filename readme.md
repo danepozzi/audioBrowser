@@ -20,23 +20,19 @@ pip install -r requirements.txt
 
 ## Preprocess
 
-We need to mix down everything to stereo wav.
-```
-python3 stereo_mix.py
-```
-Cycles throguh folders, if it finds groups of mono files it mixes them down to stereo wav. These files will end with "mixed_stereo.wav"
-```
-python3 rename_to_path.py
-```
-Ensures all mixed stereos are properly named.
+See [Utilities](utilities/readme.md).
 
 ## Transcription
 
-Transcription uses whisper from openAI. 
+Transcription uses whisper from openAI. To transcribe a single file:
 ```
-python3 transcribe_folder.py
+python3 transcribe.py /path/to/file.wav
 ```
-Will look for all files ending with "mixed_stereo.wav" in the specified folder and run transcription. It generates a txt and a json.
+To transcibe all .wav files in a given folder:
+```
+python3 transcribe_folder.py /path/to/folder
+```
+For each .wav a transcript is generated in .txt and .json format. The json file contains also infromations about date, place and notes about the recording, if the .wav file follows simularr's naming conventions (see [Utilities](utilities/readme.md)).
 
 ### Notes
 Metal Performance Shaders don't work out of the box for official whisper (missing torch implementations). I tried unofficial implementations, like [lightning whisper](https://github.com/mustafaaljadery/lightning-whisper-mlx) but transcription quality is not as good. I ended up running whisper entirely on CPU: roughly 6 minutes of audio are transcribed in 1 minute, which is probably ok.
