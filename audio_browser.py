@@ -1,21 +1,29 @@
 import os
+import argparse
 from flask import Flask, jsonify, send_from_directory, render_template, request
 import json
 
 app = Flask(__name__)
 
-AUDIO_FOLDER = '/Volumes/simularr-2/simularr/all_meetings'
+parser = argparse.ArgumentParser(description="Set the path to the audio folder")
+parser.add_argument(
+    '--audio-folder', 
+    type=str, 
+    required=True, 
+    help="The path to the folder containing the audio files"
+)
 
+args = parser.parse_args()
+AUDIO_FOLDER = args.audio_folder
 
 @app.route('/')
 def index():
-    # serve the index.html file from the templates folder
+    # Serve the index.html file from the templates folder
     return render_template('index.html')
-
 
 @app.route('/list_audio_files')
 def list_audio_files():
-    # list to store the paths of audio files
+    # List to store the paths of audio files
     audio_files = []
     
     # Walk through the AUDIO_FOLDER and collect all .wav files
@@ -28,12 +36,10 @@ def list_audio_files():
     # Return the list of audio files as a JSON response
     return jsonify({"audio_files": audio_files})
 
-
 @app.route('/audio/<path:filename>')
 def serve_audio(filename):
     # Serve the audio file from the AUDIO_FOLDER
     return send_from_directory(AUDIO_FOLDER, filename)
-
 
 @app.route('/transcription/<path:audio_filename>')
 def serve_transcription(audio_filename):
@@ -51,10 +57,9 @@ def serve_transcription(audio_filename):
     else:
         return jsonify({"error": "Transcription not found"}), 404
 
-
 @app.route('/update_transcription/<path:audio_filename>', methods=['POST'])
 def update_transcription(audio_filename):
-    # find the json
+    # Find the json
     transcription_filename = audio_filename.replace(".wav", ".json")
 
     transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
@@ -81,10 +86,9 @@ def update_transcription(audio_filename):
     else:
         return jsonify({"error": "Transcription file not found"}), 404
 
-
 @app.route('/add_annotation/<path:audio_filename>', methods=['POST'])
 def add_annotation(audio_filename):
-    # find json
+    # Find json
     transcription_filename = audio_filename.replace(".wav", ".json")
 
     transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
@@ -113,7 +117,6 @@ def add_annotation(audio_filename):
             return jsonify({"error": f"Error saving annotation: {str(e)}"}), 500
     else:
         return jsonify({"error": "Transcription file not found"}), 404
-
 
 if __name__ == '__main__':
     app.run(debug=True)
