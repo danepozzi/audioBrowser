@@ -40,6 +40,6 @@ Metal Performance Shaders don't work out of the box for official whisper (missin
 ## Audio Browser:
 An interface to browse sound file, along with generated transciptions. It allows to edit and annotate trancsiptions, using a flask app as backend to manipulate json files and serve audio files.
 ```
-python3 flaskapp.py
+python3 audio_browser.py --audio-folder /path/to/audio/folder
 ```
 Then visit: [http://127.0.0.1:5000](http://127.0.0.1:5000)
