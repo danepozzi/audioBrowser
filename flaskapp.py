@@ -4,7 +4,7 @@ import json
 
 app = Flask(__name__)
 
-AUDIO_FOLDER = '/Volumes/simularr-2/simularr/all_meetings/interval1'
+AUDIO_FOLDER = '/Volumes/simularr-2/simularr/all_meetings/interval2'
 
 
 @app.route('/')
@@ -18,10 +18,10 @@ def list_audio_files():
     # list to store the paths of audio files
     audio_files = []
     
-    # Walk through the AUDIO_FOLDER and collect all the mixed_stereo.wav files
+    # Walk through the AUDIO_FOLDER and collect all .wav files
     for root, dirs, files in os.walk(AUDIO_FOLDER):
         for file in files:
-            if file.endswith("mixed_stereo.wav"):
+            if file.endswith(".wav"):
                 # Add the relative file path to the list
                 audio_files.append(os.path.relpath(os.path.join(root, file), AUDIO_FOLDER))
     
@@ -38,7 +38,7 @@ def serve_audio(filename):
 @app.route('/transcription/<path:audio_filename>')
 def serve_transcription(audio_filename):
     # Extract the base name of the audio file to find the json
-    transcription_filename = audio_filename.replace("mixed_stereo.wav", "mixed_stereo.json")
+    transcription_filename = audio_filename.replace(".wav", ".json")
 
     # Ensure the transcription file exists
     transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
@@ -55,7 +55,7 @@ def serve_transcription(audio_filename):
 @app.route('/update_transcription/<path:audio_filename>', methods=['POST'])
 def update_transcription(audio_filename):
     # find the json
-    transcription_filename = audio_filename.replace("mixed_stereo.wav", "mixed_stereo.json")
+    transcription_filename = audio_filename.replace(".wav", ".json")
 
     transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
 
@@ -85,7 +85,7 @@ def update_transcription(audio_filename):
 @app.route('/add_annotation/<path:audio_filename>', methods=['POST'])
 def add_annotation(audio_filename):
     # find json
-    transcription_filename = audio_filename.replace("mixed_stereo.wav", "mixed_stereo.json")
+    transcription_filename = audio_filename.replace(".wav", ".json")
 
     transcription_path = os.path.join(AUDIO_FOLDER, transcription_filename)
 
