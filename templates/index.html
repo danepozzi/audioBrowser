@@ -142,6 +142,7 @@
             <!-- Audio files -->
         </select>
         <button id="open-json-button">Open JSON</button>
+        <button id="toggle-scroll-button">Disable Auto-Scroll</button>
     </header>
 
     <div id="main-content">
@@ -155,6 +156,12 @@
     <script>
         let transcriptionData = [];
         let totalDurationInSeconds = 0;
+        let autoScrollEnabled = true; // Auto-scroll is ON by default
+
+        document.getElementById('toggle-scroll-button').addEventListener('click', function () {
+            autoScrollEnabled = !autoScrollEnabled; // Toggle state
+            this.textContent = autoScrollEnabled ? 'Disable Auto-Scroll' : 'Enable Auto-Scroll';
+        });
 
         // Fetch list of audio files from the server
         fetch('/list_audio_files')
@@ -171,7 +178,7 @@
                     audioSelect.appendChild(option);
 
                     // Load the transcription for each file to calculate the total duration
-                    const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                    const transcriptionFile = file.replace('.wav', '.json');
                     fetch('/transcription/' + transcriptionFile)
                         .then(response => response.json())
                         .then(transcription => {
@@ -230,7 +237,7 @@
             transcriptionDiv.innerHTML = '';  // Clear previous transcription
             fileInfoDiv.innerHTML = '';  // Clear previous file info
 
-            const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+            const transcriptionFile = file.replace('.wav', '.json');
 
             fetch('/transcription/' + transcriptionFile)
                 .then(response => response.json())
@@ -379,7 +386,9 @@
                     segmentDiv.classList.add('highlight');
 
                     // scroll into view
-                    segmentDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (autoScrollEnabled) {
+                        segmentDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
             });
         }
@@ -439,7 +448,7 @@
 
             // Send updates to the server
             const audioFile = document.getElementById('audio-select').value;
-            const transcriptionFile = audioFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+            const transcriptionFile = audioFile.replace('.wav', '.json');
             fetch(`/update_transcription/${transcriptionFile}`, {
                 method: 'POST',
                 headers: {
@@ -464,7 +473,7 @@
             if (noteText !== null) {
                 const annotation = { start, end, text: noteText };
                 const audioFile = document.getElementById('audio-select').value;
-                const transcriptionFile = audioFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                const transcriptionFile = audioFile.replace('.wav', '.json');
                 fetch(`/add_annotation/${transcriptionFile}`, {
                     method: 'POST',
                     headers: {
@@ -488,7 +497,7 @@
         function openJsonFile() {
             const selectedFile = document.getElementById('audio-select').value;
             if (selectedFile) {
-                const transcriptionFile = selectedFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                const transcriptionFile = selectedFile.replace('.wav', '.json');
                 window.open('/transcription/' + transcriptionFile, '_blank');
             } else {
                 alert('Please select an audio file first.');
@@ -496,7 +505,7 @@
         }
 
         function saveNotes(file, newNotes) {
-            const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+            const transcriptionFile = file.replace('.wav', '.json');
 
             fetch(`/update_notes/${transcriptionFile}`, {
                 method: 'POST',
