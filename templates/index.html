@@ -377,6 +377,9 @@
                 // Highlight the segment that is currently playing
                 if (currentTime >= segment.start && currentTime <= segment.end) {
                     segmentDiv.classList.add('highlight');
+
+                    // scroll into view
+                    segmentDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             });
         }
