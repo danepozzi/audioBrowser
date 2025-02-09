@@ -43,3 +43,9 @@ An interface to browse sound file, along with generated transciptions. It allows
 python3 audio_browser.py --audio-folder /path/to/audio/folder
 ```
 Then visit: [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
+## Ideas
+- Speaker diarization
+- Topic modeling
+- Search for a specific word
+- Combine filters (interval, place, topic etc)
