@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>simularr audio browser</title>
+    <title>Simularr Audio Browser</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,13 +40,11 @@
             font-size: 16px;
         }
 
-        /* main content below hheader */
         #main-content {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             margin-top: 80px;
-            /* Space for header */
             padding: 20px;
             overflow: auto;
         }
@@ -63,17 +61,36 @@
             height: auto;
         }
 
+        #file-info {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        #file-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #file-info th,
+        #file-info td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        #file-info th {
+            background-color: #f2f2f2;
+        }
+
         #transcription {
             display: flex;
             flex-direction: column;
             padding: 10px;
             max-height: calc(100vh - 120px);
-            /* Full height minus the header and audio player */
             overflow-y: auto;
             width: 100%;
         }
 
-        /* transcription segment container */
         .transcription-segment {
             display: flex;
             justify-content: space-between;
@@ -90,15 +107,10 @@
             background-color: yellow;
         }
 
-        /* user clicks on transcription */
-        #audio-select,
-        #audio-player {
-            width: 100%;
-        }
-
-        /* content in view and scrolls */
-        .scrollable {
-            overflow-y: auto;
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         textarea.editable {
@@ -114,39 +126,35 @@
             margin-left: 10px;
             cursor: pointer;
         }
-
-        /* buttons to the right */
-        .button-container {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>simularr audio browser</h1>
+        <h1>Simularr Audio Browser</h1>
         <select id="audio-select">
             <!-- Audio files -->
         </select>
     </header>
 
     <div id="main-content">
+        <div id="file-info">
+            <!-- File info table will appear here -->
+        </div>
         <div id="audio-player"></div>
-        <div id="transcription" class="scrollable"></div>
+        <div id="transcription"></div>
     </div>
 
     <script>
         let transcriptionData = [];
 
-        // fetch list of audio files from flask server
+        // Fetch list of audio files from the server
         fetch('/list_audio_files')
             .then(response => response.json())
             .then(data => {
                 const audioSelect = document.getElementById('audio-select');
 
-                // populate the dropdown with audio files
+                // Populate the dropdown with audio files
                 data.audio_files.forEach(file => {
                     const option = document.createElement('option');
                     option.value = file;
@@ -154,14 +162,14 @@
                     audioSelect.appendChild(option);
                 });
 
-                // add event listener for selection change
+                // Add event listener for selection change
                 audioSelect.addEventListener('change', function () {
                     const selectedFile = audioSelect.value;
                     loadAudio(selectedFile);
                     loadTranscription(selectedFile);
                 });
 
-                // trigger the initial load for the first audio file
+                // Trigger the initial load for the first audio file
                 if (audioSelect.options.length > 0) {
                     audioSelect.value = audioSelect.options[0].value;
                     loadAudio(audioSelect.value);
@@ -172,16 +180,16 @@
                 console.error('Error fetching audio files:', error);
             });
 
-        // load and play the audio
+        // Load and play the audio
         function loadAudio(file) {
             const audioPlayer = document.getElementById('audio-player');
-            audioPlayer.innerHTML = '';  // Cclear any existing audio player
+            audioPlayer.innerHTML = '';  // Clear any existing audio player
             const audioElement = document.createElement('audio');
             audioElement.src = '/audio/' + file;
             audioElement.controls = true;
             audioPlayer.appendChild(audioElement);
 
-            // listen to the timeupdate event to update transcription highlighting
+            // Listen to the timeupdate event to update transcription highlighting
             audioElement.addEventListener('timeupdate', function () {
                 highlightTranscription(audioElement.currentTime);
             });
@@ -189,10 +197,12 @@
             audioElement.play();
         }
 
-        // load the transcription
+        // Load the transcription and file info
         function loadTranscription(file) {
             const transcriptionDiv = document.getElementById('transcription');
+            const fileInfoDiv = document.getElementById('file-info');
             transcriptionDiv.innerHTML = '';  // Clear previous transcription
+            fileInfoDiv.innerHTML = '';  // Clear previous file info
 
             const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
 
@@ -201,11 +211,34 @@
                 .then(data => {
                     if (data.transcript) {
                         transcriptionData = data.transcript;
+
+                        // Create the table for file info
+                        const table = document.createElement('table');
+                        const headerRow = document.createElement('tr');
+                        headerRow.innerHTML = `
+                            <th>Duration</th>
+                            <th>Date</th>
+                            <th>Place</th>
+                            <th>Notes</th>
+                        `;
+                        table.appendChild(headerRow);
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${formatDuration(data.duration)}</td>
+                            <td>${formatDate(data.date)}</td>
+                            <td>${data.place || 'N/A'}</td>
+                            <td>${data.notes || 'N/A'}</td>
+                        `;
+                        table.appendChild(row);
+
+                        fileInfoDiv.appendChild(table);
+
                         // Display the transcription text
                         transcriptionData.forEach((segment, index) => {
                             const segmentDiv = document.createElement('div');
                             segmentDiv.classList.add('transcription-segment');
-                            segmentDiv.id = `segment-${index}`; // Add unique ID to each segment
+                            segmentDiv.id = `segment-${index}`;
 
                             const textDiv = document.createElement('div');
                             textDiv.classList.add('transcription-text');
@@ -217,7 +250,6 @@
                                 jumpToSegment(segment.start);
                             });
 
-                            // button container for Edit and Note buttons
                             const buttonContainer = document.createElement('div');
                             buttonContainer.classList.add('button-container');
 
@@ -252,29 +284,69 @@
                 });
         }
 
-        // highlight the transcription text 
+        // Format duration
+        function formatDuration(durationInMinutes) {
+            const durationInSeconds = Math.floor(durationInMinutes * 60);
+            const hours = Math.floor(durationInSeconds / 3600);
+            const minutes = Math.floor((durationInSeconds % 3600) / 60);
+            const seconds = durationInSeconds % 60;
+
+            let formattedDuration = '';
+
+            if (hours > 0) {
+                formattedDuration += `${hours} hour${hours > 1 ? 's' : ''} `;
+            }
+
+            if (minutes > 0) {
+                formattedDuration += `${minutes} minute${minutes > 1 ? 's' : ''} `;
+            }
+
+            formattedDuration += `${seconds} second${seconds !== 1 ? 's' : ''}`;
+
+            return formattedDuration.trim();
+        }
+
+        // Format date 
+        function formatDate(dateStr) {
+            const year = `20${dateStr.slice(0, 2)}`;
+            const month = parseInt(dateStr.slice(2, 4)) - 1;  // Months are 0-indexed
+            const day = parseInt(dateStr.slice(4, 6));
+
+            const date = new Date(year, month, day);
+
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = date.toLocaleDateString('en-GB', options);
+
+            // Add the suffix to the day
+            const daySuffix = ['st', 'nd', 'rd', 'th'];
+            const dayOfMonth = day;
+            const suffix = daySuffix[(dayOfMonth % 10) - 1] || daySuffix[3];
+            return formattedDate.replace(dayOfMonth, `${dayOfMonth}${suffix}`);
+        }
+
+        // Highlight the transcription text
         function highlightTranscription(currentTime) {
             transcriptionData.forEach((segment, index) => {
                 const segmentDiv = document.getElementById(`segment-${index}`);
 
-                // remove previous highlights
+                // Remove previous highlights
                 segmentDiv.classList.remove('highlight');
 
-                // highlight the segment that is currently playing
+                // Highlight the segment that is currently playing
                 if (currentTime >= segment.start && currentTime <= segment.end) {
                     segmentDiv.classList.add('highlight');
                 }
             });
         }
 
-        // jump to a specific time when a transcription segment is clicked
+        // Jump to a specific time when a transcription segment is clicked
         function jumpToSegment(startTime) {
             const audioElement = document.querySelector('audio');
-            audioElement.currentTime = startTime; // audio time to the start of the clicked segment
+            audioElement.currentTime = startTime; // Audio time to the start of the clicked segment
             audioElement.play();
         }
 
-        // make transcription editable
+        // Make transcription editable
         function makeEditable(segmentDiv, index) {
             const originalText = transcriptionData[index].text;
             segmentDiv.innerHTML = `<textarea class="editable">${originalText}</textarea>`;
@@ -284,10 +356,10 @@
                 saveEdits(segmentDiv, index, textarea.value);
             });
 
-            // enter key saves the edit
+            // Enter key saves the edit
             textarea.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter') {
-                    event.preventDefault(); // prevent the default behavior of moving to a new line
+                    event.preventDefault(); // Prevent the default behavior of moving to a new line
                     saveEdits(segmentDiv, index, textarea.value);
                 }
             });
@@ -295,12 +367,12 @@
             textarea.focus();
         }
 
-        // save edits made to transcription
+        // Save edits made to transcription
         function saveEdits(segmentDiv, index, newText) {
             transcriptionData[index].text = newText;
             segmentDiv.innerHTML = `[${transcriptionData[index].start} - ${transcriptionData[index].end}] ${newText}`;
 
-            // re-add the edit button after saving
+            // Re-add the edit button after saving
             const editButton = document.createElement('button');
             editButton.textContent = 'Edit';
             editButton.classList.add('edit-button');
@@ -310,7 +382,7 @@
                 makeEditable(segmentDiv, index);
             });
 
-            // re-add the note button after saving
+            // Re-add the note button after saving
             const noteButton = document.createElement('button');
             noteButton.textContent = 'Note';
             noteButton.classList.add('note-button');
@@ -320,7 +392,7 @@
                 createNote(transcriptionData[index].start, transcriptionData[index].end);
             });
 
-            // send updates to the server
+            // Send updates to the server
             const audioFile = document.getElementById('audio-select').value;
             const transcriptionFile = audioFile.replace('mixed_stereo.wav', 'mixed_stereo.json');
             fetch(`/update_transcription/${transcriptionFile}`, {
@@ -341,7 +413,7 @@
                 });
         }
 
-        // create a note for the selected segment
+        // Create a note for the selected segment
         function createNote(start, end) {
             const noteText = prompt('Enter note text:');
             if (noteText !== null) {
