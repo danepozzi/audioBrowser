@@ -4,7 +4,7 @@ import json
 
 app = Flask(__name__)
 
-AUDIO_FOLDER = '/Volumes/simularr-2/simularr/all_meetings/interval2'
+AUDIO_FOLDER = '/Volumes/simularr-2/simularr/all_meetings'
 
 
 @app.route('/')
