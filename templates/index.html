@@ -34,6 +34,11 @@
             font-size: 24px;
         }
 
+        #total-duration {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
         #audio-select {
             margin-top: 10px;
             padding: 5px;
@@ -132,6 +137,7 @@
 <body>
     <header>
         <h1>Simularr Audio Browser</h1>
+        <div id="total-duration">Audio Archive: 0 hours 0 minutes 0 seconds</div>
         <select id="audio-select">
             <!-- Audio files -->
         </select>
@@ -147,12 +153,14 @@
 
     <script>
         let transcriptionData = [];
+        let totalDurationInSeconds = 0;
 
         // Fetch list of audio files from the server
         fetch('/list_audio_files')
             .then(response => response.json())
             .then(data => {
                 const audioSelect = document.getElementById('audio-select');
+                const totalDurationDiv = document.getElementById('total-duration');
 
                 // Populate the dropdown with audio files
                 data.audio_files.forEach(file => {
@@ -160,6 +168,23 @@
                     option.value = file;
                     option.textContent = file;
                     audioSelect.appendChild(option);
+
+                    // Load the transcription for each file to calculate the total duration
+                    const transcriptionFile = file.replace('mixed_stereo.wav', 'mixed_stereo.json');
+                    fetch('/transcription/' + transcriptionFile)
+                        .then(response => response.json())
+                        .then(transcription => {
+                            if (transcription && transcription.duration) {
+                                // Add the duration to the total duration in seconds
+                                totalDurationInSeconds += Math.floor(transcription.duration * 60); // Duration is in minutes, so convert to seconds
+
+                                // Update the total duration display
+                                totalDurationDiv.textContent = `Audio Archive: ${formatDuration(totalDurationInSeconds / 60)}`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching transcription for ' + file, error);
+                        });
                 });
 
                 // Add event listener for selection change
