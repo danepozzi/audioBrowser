@@ -22,19 +22,24 @@ def transcribe_audio(audio_path):
     filename_without_extension = os.path.splitext(filename)[0]
     date_match = re.match(r"^(\d{6,8})[-_]", filename)
     date = date_match.group(1) if date_match else "unknown"
+    
+    try:
+        place = filename.split('_')[1]
+        place = place.replace(".wav", "")
+        place = place if place else "unknown"   
 
-    place_match = filename.split('_')[1]
-    place = place_match if place_match else "unknown"   
-
-    notes = filename.split('_', 2)[-1]
-    notes = notes.replace(".wav", "")
-    notes = re.sub(r'_Ste_\d{3}$', '', notes)  # Remove _Ste_IDX
-    notes = re.sub(r'Ste_\d{3}$', '', notes)
-    notes = re.sub(r'_\d{6}_\d{3}$', '', notes)  # Remove _YYMMDD_IDX
-    notes = re.sub(r'\d{6}_\d{3}$', '', notes)
-    notes = re.sub(r'_Neue_Aufnahme_\d+$', '', notes) # Remove _Neu_Aufnahme_IDX
-    notes = re.sub(r'Neue_Aufnahme_\d+$', '', notes)
-    notes = notes if notes else None  
+        notes = filename.split('_', 2)[-1] if filename.count('_') >= 2 else ""
+        notes = notes.replace(".wav", "")
+        notes = re.sub(r'_Ste_\d{3}$', '', notes)  # Remove _Ste_IDX
+        notes = re.sub(r'Ste_\d{3}$', '', notes)
+        notes = re.sub(r'_\d{6}_\d{3}$', '', notes)  # Remove _YYMMDD_IDX
+        notes = re.sub(r'\d{6}_\d{3}$', '', notes)
+        notes = re.sub(r'_Neue_Aufnahme_\d+$', '', notes) # Remove _Neu_Aufnahme_IDX
+        notes = re.sub(r'Neue_Aufnahme_\d+$', '', notes)
+        notes = notes if notes else None  
+    except:
+        place = "unknown"
+        notes = None
     
     print("Date:", date)
     print("Place:", place)
