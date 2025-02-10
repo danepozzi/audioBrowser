@@ -3,13 +3,6 @@
 Tools to transcribe, edit and annotate simularr audio files.
 
 ## Install
-Linux
-```
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-OSX
 ```
 python -m venv venv
 source venv/bin/activate
