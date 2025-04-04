@@ -14,18 +14,26 @@ def rename_files_in_folder(folder):
     """Recursively renames files in the given folder."""
     for dirpath, _, filenames in os.walk(folder):
         for filename in filenames:
+            # Skip AppleDouble files (hidden files starting with '._')
+            if filename.startswith('._'):
+                continue
+
             new_filename = format_filename(filename)
 
             if filename != new_filename:
                 old_path = os.path.join(dirpath, filename)
                 new_path = os.path.join(dirpath, new_filename)
 
-                # Force rename even if the only change is case (macOS APFS fix)
-                temp_path = os.path.join(dirpath, f"temp_{int(time.time() * 1000)}{os.path.splitext(filename)[1]}")
-                os.rename(old_path, temp_path)
-                os.rename(temp_path, new_path)
+                # Ensure the file exists before renaming
+                if os.path.exists(old_path):
+                    # Force rename even if the only change is case (macOS APFS fix)
+                    temp_path = os.path.join(dirpath, f"temp_{int(time.time() * 1000)}{os.path.splitext(filename)[1]}")
+                    os.rename(old_path, temp_path)
+                    os.rename(temp_path, new_path)
 
-                print(f"Renamed: {old_path} -> {new_path}")
+                    print(f"Renamed: {old_path} -> {new_path}")
+                else:
+                    print(f"File not found: {old_path}")
 
 def main(root_dir):
     folder = root_dir.strip()
