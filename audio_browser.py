@@ -140,6 +140,40 @@ def update_notes(audio_filename):
             return jsonify({"error": f"Error saving notes: {str(e)}"}), 500
     else:
         return jsonify({"error": "Transcription file not found"}), 404
+    
+@app.route('/search_transcripts', methods=['GET'])
+def search_transcripts():
+    query = request.args.get('q', '').lower()
+    if not query:
+        return jsonify([])
+
+    results = []
+
+    for root, _, files in os.walk(AUDIO_FOLDER):
+        for file_name in files:
+            if file_name.startswith('._'):
+                continue
+
+            if file_name.endswith('.json'):
+                file_path = os.path.join(root, file_name)
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                        data = json.load(f)
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    print(f"Skipping invalid JSON file {file_path}: {e}")
+                    continue
+
+                if "transcript" in data:
+                    for segment in data["transcript"]:
+                        if query in segment["text"].lower():
+                            results.append({
+                                "file": os.path.relpath(file_path, AUDIO_FOLDER).replace('.json', '.wav'),
+                                "start": segment["start"],
+                                "end": segment["end"],
+                                "text": segment["text"]
+                            })
+
+    return jsonify(results)
 
 if __name__ == '__main__':
     app.run(debug=True)

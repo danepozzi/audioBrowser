@@ -143,6 +143,8 @@
         </select>
         <button id="open-json-button">Open JSON</button>
         <button id="toggle-scroll-button">Disable Auto-Scroll</button>
+        <input type="text" id="search-input" placeholder="Search transcripts">
+        <button id="search-button">Search</button>
     </header>
 
     <div id="main-content">
@@ -156,10 +158,59 @@
     <script>
         let transcriptionData = [];
         let totalDurationInSeconds = 0;
-        let autoScrollEnabled = true; // Auto-scroll is ON by default
+        let autoScrollEnabled = true; // auto-scroll is ON by default
 
+        document.getElementById('search-button').addEventListener('click', function () {
+            const query = document.getElementById('search-input').value.trim();
+
+            if (query === '') {
+                alert('Please enter a search term.');
+                return;
+            }
+
+            fetch(`/search_transcripts?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displaySearchResults(data);
+                })
+                .catch(error => {
+                    console.error('Error searching transcripts:', error);
+                });
+        });
+
+        function displaySearchResults(results) {
+            const transcriptionDiv = document.getElementById('transcription');
+            transcriptionDiv.innerHTML = ''; // clear previous results
+
+            if (results.length === 0) {
+                transcriptionDiv.innerHTML = '<p>No results found.</p>';
+                return;
+            }
+
+            results.forEach(result => {
+                const segmentDiv = document.createElement('div');
+                segmentDiv.classList.add('transcription-segment');
+
+                segmentDiv.innerHTML = `
+                    <strong>${result.file}</strong> - [${result.start} - ${result.end}] <span class="highlight">${result.text}</span>
+                `;
+
+                // load the respective audio file and jump to time
+                segmentDiv.addEventListener('click', function () {
+                    document.getElementById('audio-select').value = result.file;
+                    loadAudio(result.file);
+                    loadTranscription(result.file);
+
+                    setTimeout(() => {
+                        jumpToSegment(result.start);
+                    }, 1000);
+                });
+
+                transcriptionDiv.appendChild(segmentDiv);
+            });
+        }
         document.getElementById('toggle-scroll-button').addEventListener('click', function () {
-            autoScrollEnabled = !autoScrollEnabled; // Toggle state
+            autoScrollEnabled = !autoScrollEnabled; // toggle state
             this.textContent = autoScrollEnabled ? 'Disable Auto-Scroll' : 'Enable Auto-Scroll';
         });
 
@@ -525,7 +576,6 @@
                 });
         }
 
-        // Add event listener to the button
         document.getElementById('open-json-button').addEventListener('click', openJsonFile);
     </script>
 </body>
